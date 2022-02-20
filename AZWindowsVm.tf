@@ -18,6 +18,13 @@ resource "azurerm_subnet" "example" {
   address_prefixes     = ["10.10.2.0/24"]
 }
 
+/*resource "azurerm_subnet" "Int2" {
+  name                 = "internal-2"
+  resource_group_name  = azurerm_resource_group.example.name
+  virtual_network_name = azurerm_virtual_network.example.name
+  address_prefixes     = ["10.10.3.0/24"]
+} */
+
 resource "azurerm_network_interface" "example" {
   name                = "New-TF-nic"
   location            = azurerm_resource_group.example.location
@@ -27,7 +34,9 @@ resource "azurerm_network_interface" "example" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.example.id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.example.id
   }
+  
 }
 
 resource "azurerm_windows_virtual_machine" "example" {
@@ -44,6 +53,7 @@ resource "azurerm_windows_virtual_machine" "example" {
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
+    disk_size_gb         = 256
   }
 
   source_image_reference {
@@ -52,4 +62,20 @@ resource "azurerm_windows_virtual_machine" "example" {
     sku       = "2019-Datacenter"
     version   = "latest"
   }
+}
+
+resource "azurerm_managed_disk" "example" {
+  name                 = "Datadisk1"
+  location             = azurerm_resource_group.example.location
+  resource_group_name  = azurerm_resource_group.example.name
+  storage_account_type = "Standard_LRS"
+  create_option        = "Empty"
+  disk_size_gb         = 10
+}
+
+resource "azurerm_virtual_machine_data_disk_attachment" "example" {
+  managed_disk_id    = azurerm_managed_disk.example.id
+  virtual_machine_id = azurerm_windows_virtual_machine.example.id
+  lun                = "10"
+  caching            = "ReadWrite"
 }
